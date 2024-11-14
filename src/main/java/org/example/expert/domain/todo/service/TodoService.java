@@ -17,6 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,6 +27,7 @@ public class TodoService {
 
     private final TodoRepository todoRepository;
     private final WeatherClient weatherClient;
+    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public TodoSaveResponse saveTodo(AuthUser authUser, TodoSaveRequest todoSaveRequest) {
         User user = User.fromAuthUser(authUser);
@@ -47,20 +51,15 @@ public class TodoService {
         );
     }
 
-    public Page<TodoResponse> getTodos(int page, int size) {
+    public Page<TodoResponse> getTodos(int page, int size, String weather, String startDate, String endDate) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(pageable);
+        LocalDate start = (startDate != null) ? LocalDate.parse(startDate, dateFormatter) : null;
+        LocalDate end = (endDate != null) ? LocalDate.parse(endDate, dateFormatter) : null;
 
-        return todos.map(todo -> new TodoResponse(
-                todo.getId(),
-                todo.getTitle(),
-                todo.getContents(),
-                todo.getWeather(),
-                new UserResponse(todo.getUser().getId(), todo.getUser().getEmail(), todo.getUser().getNickname()),
-                todo.getCreatedAt(),
-                todo.getModifiedAt()
-        ));
+        Page<Todo> todos = todoRepository.findByConditions(weather, start, end, pageable);
+
+        return todos.map(TodoResponse::from);
     }
 
     public TodoResponse getTodo(long todoId) {
