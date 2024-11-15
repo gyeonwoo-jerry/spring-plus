@@ -1,10 +1,10 @@
 package org.example.expert.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.expert.domain.common.exception.ServerException;
 import org.example.expert.domain.user.enums.UserRole;
@@ -62,5 +62,36 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public String getJwtFromHeader(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (StringUtils.hasText(token) && token.startsWith(BEARER_PREFIX)) {
+            return token.substring(7);
+        }
+        return null;
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (SecurityException | MalformedJwtException e) {
+            log.error("Invalid JWT signature, 유효하지 않는 JWT 서명 입니다.", e);
+            throw new IllegalArgumentException ("유효하지 않는 JWT 서명입니다.");
+        } catch (ExpiredJwtException e) {
+            log.error("Expired JWT token, 만료된 JWT token 입니다.", e);
+            throw new IllegalArgumentException("만료된 JWT 토큰입니다.");
+        } catch (UnsupportedJwtException e) {
+            log.error("Unsupported JWT token, 지원되지 않는 JWT 토큰 입니다.", e);
+            throw new IllegalArgumentException("지원되지 않는 JWT 토큰입니다.");
+        } catch (Exception e) {
+            log.error("Internal server error", e);
+            throw new IllegalArgumentException("Internal server error.");
+        }
+    }
+
+    public Claims getUserInfoFromToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
 }
