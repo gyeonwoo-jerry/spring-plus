@@ -29,8 +29,8 @@ public class TodoService {
     private final WeatherClient weatherClient;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    public TodoSaveResponse saveTodo(AuthUser authUser, TodoSaveRequest todoSaveRequest) {
-        User user = User.fromAuthUser(authUser);
+    public TodoSaveResponse saveTodo(User user, TodoSaveRequest todoSaveRequest) {
+//        User user = User.fromAuthUser(authUser);
 
         String weather = weatherClient.getTodayWeather();
 
